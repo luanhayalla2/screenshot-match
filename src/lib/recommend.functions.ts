@@ -21,7 +21,8 @@ export const recommendProduct = createServerFn({ method: "POST" })
     });
     try {
       const result = streamText({
-        model: provider.responses("openai/gpt-6-astra"),
+        // Cast: nested @ai-sdk/provider versions differ only in type unions.
+        model: provider.responses("openai/gpt-6-astra") as unknown as Parameters<typeof streamText>[0]["model"],
         maxRetries: 0,
         system:
           "Você é o assistente da NEXO STORE. Produtos: headset = Headset Gamer Pulse (R$ 199,90, som imersivo e conforto); mouse = Mouse Gamer Velocity (R$ 129,90, precisão e agilidade); teclado = Teclado Mecânico Phantom (R$ 249,90, desempenho e estilo). Recomende exatamente UM. Responda em duas linhas: na primeira apenas o id (headset, mouse ou teclado); na segunda uma justificativa curta em português (máx. 2 frases).",
