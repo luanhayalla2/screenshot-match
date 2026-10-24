@@ -32,7 +32,7 @@ export const recommendProduct = createServerFn({ method: "POST" })
       });
       const text = (await result.text).trim();
       const [first, ...rest] = text.split("\n");
-      const id = IDS.find((i) => first.toLowerCase().includes(i));
+      const id = IDS.find((i) => (first ?? "").toLowerCase().includes(i));
       if (!id) return { error: "Não foi possível gerar uma recomendação. Tente descrever de outra forma." };
       return { id, reason: rest.join(" ").trim() };
     } catch (e: unknown) {
