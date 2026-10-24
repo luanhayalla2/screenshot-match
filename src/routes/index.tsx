@@ -189,7 +189,7 @@ function Recomendador() {
   const [res, setRes] = useState<{ id?: string; reason?: string; error?: string } | null>(null);
   const produto = produtos.find((p) => p.id === res?.id);
 
-  async function enviar(e: React.FormEvent) {
+  async function enviar(e: import("react").FormEvent) {
     e.preventDefault();
     setLoading(true); setRes(null);
     try { setRes(await recommend({ data: { need } })); }
