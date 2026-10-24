@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Sparkles, Loader2 } from "lucide-react";
+import { recommendProduct } from "@/lib/recommend.functions";
 import { Gamepad2, Menu, X, MousePointerClick, Hash, ClipboardCheck, Info, ArrowRight, ImageOff } from "lucide-react";
 import hero from "@/assets/hero.jpg";
 import headset from "@/assets/headset.jpg";
@@ -121,6 +124,8 @@ function Index() {
           </div>
         </section>
 
+        <Recomendador />
+
         <section id="como-funciona" className="border-y bg-card/40">
           <div className="mx-auto max-w-6xl px-5 py-24">
             <h2 className="text-3xl font-bold md:text-4xl">Como funciona</h2>
@@ -174,5 +179,53 @@ function Index() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function Recomendador() {
+  const recommend = useServerFn(recommendProduct);
+  const [need, setNeed] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [res, setRes] = useState<{ id?: string; reason?: string; error?: string } | null>(null);
+  const produto = produtos.find((p) => p.id === res?.id);
+
+  async function enviar(e: import("react").FormEvent) {
+    e.preventDefault();
+    setLoading(true); setRes(null);
+    try { setRes(await recommend({ data: { need } })); }
+    catch { setRes({ error: "Descreva sua necessidade (3 a 500 caracteres)." }); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <section id="recomendar" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="card-surface p-8 md:p-10">
+        <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-cyan"><Sparkles className="h-4 w-4" aria-hidden />Assistente NEXO</p>
+        <h2 className="mt-3 text-2xl font-bold md:text-3xl">Não sabe qual escolher?</h2>
+        <p className="mt-2 text-muted-foreground">Conte o que você precisa e nossa IA recomenda um dos nossos produtos.</p>
+        <form onSubmit={enviar} className="mt-6 flex flex-col gap-3 md:flex-row">
+          <label htmlFor="necessidade" className="sr-only">Descreva o que você precisa</label>
+          <input id="necessidade" value={need} onChange={(e) => setNeed(e.target.value)} maxLength={500}
+            placeholder="Ex.: Jogo FPS competitivo e preciso de mira rápida"
+            className="flex-1 rounded-full border bg-background px-5 py-3 text-foreground placeholder:text-muted-foreground" />
+          <button type="submit" disabled={loading || need.trim().length < 3} className="btn-primary disabled:opacity-50">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+            {loading ? "Analisando..." : "Recomendar produto"}
+          </button>
+        </form>
+        <div aria-live="polite">
+          {res?.error && <p className="mt-5 text-sm text-destructive">{res.error}</p>}
+          {produto && (
+            <div className="mt-6 flex items-center gap-5 rounded-xl border border-primary/50 bg-background/50 p-4">
+              <img src={produto.img} alt={produto.nome} width={912} height={736} className="h-20 w-24 rounded-lg object-cover" />
+              <div>
+                <p className="font-display text-lg font-semibold">{produto.nome} <span className="text-cyan">{brl(produto.preco)}</span></p>
+                <p className="mt-1 text-sm text-muted-foreground">{res?.reason}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

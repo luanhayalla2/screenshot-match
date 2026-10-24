@@ -17,6 +17,7 @@
   --color-violet: var(--violet);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-destructive: var(--destructive);
 }
 
 /* Paleta NEXO STORE (#0A0D18, #12182A, #2563EB, #22D3EE, #8B5CF6, #F8FAFC, #94A3B8, #26324A) */
@@ -31,6 +32,7 @@
   --violet: oklch(0.606 0.219 292.7);
   --muted-foreground: oklch(0.711 0.035 256.8);
   --border: oklch(0.32 0.04 264);
+  --destructive: oklch(0.72 0.17 22);
   --gradient-brand: linear-gradient(135deg, var(--primary), var(--violet));
   --gradient-text: linear-gradient(90deg, var(--cyan), var(--primary) 50%, var(--violet));
   --shadow-card: 0 20px 40px -24px oklch(0 0 0 / 0.7);
