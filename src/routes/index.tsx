@@ -250,7 +250,7 @@ function Recomendador() {
       <div className="card-surface p-8 md:p-10">
         <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-cyan"><Sparkles className="h-4 w-4" aria-hidden />Assistente NEXO</p>
         <h2 className="mt-3 text-2xl font-bold md:text-3xl">Não sabe qual escolher?</h2>
-        <p className="mt-2 text-muted-foreground">Conte o que você precisa e nossa IA recomenda um dos nossos produtos.</p>
+        <p className="mt-2 text-muted-foreground">Conte o que você precisa e nosso assistente recomenda um dos nossos produtos.</p>
         <form onSubmit={enviar} className="mt-6 flex flex-col gap-3 md:flex-row">
           <label htmlFor="necessidade" className="sr-only">Descreva o que você precisa</label>
           <input id="necessidade" value={need} onChange={(e) => setNeed(e.target.value)} maxLength={500}
