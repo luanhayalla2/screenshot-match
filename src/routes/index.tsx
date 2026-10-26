@@ -32,24 +32,73 @@ const produtos = [
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function simularCompra() {
+type Pedido = { nome: string; itens: { nome: string; qtd: number; sub: number }[]; total: number; data: string };
+const CHAVE = "nexo-pedidos";
+const lerPedidos = (): Pedido[] => { try { return JSON.parse(localStorage.getItem(CHAVE) || "[]"); } catch { return []; } };
+
+function simularCompra(): Pedido | null {
+  let nome = "";
+  while (!nome) {
+    const r = prompt("Qual é o seu nome?", "");
+    if (r === null) return null;
+    nome = r.trim();
+    if (!nome) alert("Digite seu nome para continuar.");
+  }
   let total = 0;
   let resumo = "";
+  const itens: Pedido["itens"] = [];
   for (const p of produtos) {
     let qtd = NaN;
     while (Number.isNaN(qtd) || qtd < 0) {
       const r = prompt(`Quantas unidades de "${p.nome}" (${brl(p.preco)})? Digite 0 para não comprar.`, "0");
-      if (r === null) return;
+      if (r === null) return null;
       qtd = Number.parseInt(r, 10);
       if (Number.isNaN(qtd) || qtd < 0) alert("Digite um número inteiro igual ou maior que zero.");
     }
     if (qtd > 0) {
       const sub = qtd * p.preco;
       total += sub;
+      itens.push({ nome: p.nome, qtd, sub });
       resumo += `${qtd}x ${p.nome} = ${brl(sub)}\n`;
     }
   }
-  alert(total === 0 ? "Nenhum produto foi selecionado." : `Resumo da simulação:\n\n${resumo}\nTotal: ${brl(total)}`);
+  if (total === 0) { alert("Nenhum produto foi selecionado."); return null; }
+  alert(`Resumo da simulação de ${nome}:\n\n${resumo}\nTotal: ${brl(total)}`);
+  const pedido = { nome, itens, total, data: new Date().toLocaleString("pt-BR") };
+  localStorage.setItem(CHAVE, JSON.stringify([pedido, ...lerPedidos()]));
+  return pedido;
+}
+
+function PainelPedidos({ pedidos, limpar }: { pedidos: Pedido[]; limpar: () => void }) {
+  return (
+    <section id="pedidos" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="card-surface p-8 md:p-10">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold md:text-3xl">Pedidos simulados</h2>
+          {pedidos.length > 0 && <button type="button" onClick={limpar} className="text-sm text-muted-foreground hover:text-foreground">Limpar pedidos</button>}
+        </div>
+        {pedidos.length === 0 ? (
+          <p className="mt-4 text-muted-foreground">Nenhum pedido ainda. Faça uma simulação para vê-la aqui.</p>
+        ) : (
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-muted-foreground"><tr><th className="py-2 pr-4">Nome</th><th className="py-2 pr-4">Produtos</th><th className="py-2 pr-4">Data</th><th className="py-2 text-right">Total</th></tr></thead>
+              <tbody>
+                {pedidos.map((p, i) => (
+                  <tr key={i} className="border-t align-top">
+                    <td className="py-3 pr-4 font-medium">{p.nome}</td>
+                    <td className="py-3 pr-4">{p.itens.map((it) => <div key={it.nome}>{it.qtd}x {it.nome}</div>)}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{p.data}</td>
+                    <td className="py-3 text-right font-display font-bold text-cyan">{brl(p.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function Logo() {
