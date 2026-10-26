@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
-import { recommendProduct } from "@/lib/recommend.functions";
+import { recomendarLocal } from "@/lib/recommend-local";
 import { Gamepad2, Menu, X, MousePointerClick, Hash, ClipboardCheck, Info, ArrowRight, ImageOff } from "lucide-react";
 import hero from "@/assets/hero.jpg";
 import headset from "@/assets/headset.jpg";
@@ -118,7 +117,9 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
 
 function Index() {
   const [menu, setMenu] = useState(false);
-  const links = [["#inicio", "Início"], ["#produtos", "Produtos"], ["#como-funciona", "Como funciona"]];
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  useEffect(() => { setPedidos(lerPedidos()); }, []);
+  const links = [["#inicio", "Início"], ["#produtos", "Produtos"], ["#como-funciona", "Como funciona"], ["#pedidos", "Pedidos"]];
 
   return (
     <div className="min-h-screen">
@@ -206,11 +207,13 @@ function Index() {
                 </ul>
               </div>
               <div className="md:text-center">
-                <button id="btn-simular" type="button" onClick={simularCompra} className="btn-primary px-10 py-4 text-lg">Simular compra</button>
+                <button id="btn-simular" type="button" onClick={() => { if (simularCompra()) setPedidos(lerPedidos()); }} className="btn-primary px-10 py-4 text-lg">Simular compra</button>
               </div>
             </div>
           </div>
         </section>
+
+        <PainelPedidos pedidos={pedidos} limpar={() => { localStorage.removeItem(CHAVE); setPedidos([]); }} />
       </main>
 
       <footer className="border-t">
@@ -232,18 +235,14 @@ function Index() {
 }
 
 function Recomendador() {
-  const recommend = useServerFn(recommendProduct);
   const [need, setNeed] = useState("");
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [res, setRes] = useState<{ id?: string; reason?: string; error?: string } | null>(null);
   const produto = produtos.find((p) => p.id === res?.id);
 
-  async function enviar(e: import("react").FormEvent) {
+  function enviar(e: import("react").FormEvent) {
     e.preventDefault();
-    setLoading(true); setRes(null);
-    try { setRes(await recommend({ data: { need } })); }
-    catch { setRes({ error: "Descreva sua necessidade (3 a 500 caracteres)." }); }
-    finally { setLoading(false); }
+    setRes(recomendarLocal(need));
   }
 
   return (
