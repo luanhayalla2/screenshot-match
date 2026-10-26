@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
-import { recommendProduct } from "@/lib/recommend.functions";
+import { recomendarLocal } from "@/lib/recommend-local";
 import { Gamepad2, Menu, X, MousePointerClick, Hash, ClipboardCheck, Info, ArrowRight, ImageOff } from "lucide-react";
 import hero from "@/assets/hero.jpg";
 import headset from "@/assets/headset.jpg";
@@ -32,24 +31,73 @@ const produtos = [
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function simularCompra() {
+type Pedido = { nome: string; itens: { nome: string; qtd: number; sub: number }[]; total: number; data: string };
+const CHAVE = "nexo-pedidos";
+const lerPedidos = (): Pedido[] => { try { return JSON.parse(localStorage.getItem(CHAVE) || "[]"); } catch { return []; } };
+
+function simularCompra(): Pedido | null {
+  let nome = "";
+  while (!nome) {
+    const r = prompt("Qual é o seu nome?", "");
+    if (r === null) return null;
+    nome = r.trim();
+    if (!nome) alert("Digite seu nome para continuar.");
+  }
   let total = 0;
   let resumo = "";
+  const itens: Pedido["itens"] = [];
   for (const p of produtos) {
     let qtd = NaN;
     while (Number.isNaN(qtd) || qtd < 0) {
       const r = prompt(`Quantas unidades de "${p.nome}" (${brl(p.preco)})? Digite 0 para não comprar.`, "0");
-      if (r === null) return;
+      if (r === null) return null;
       qtd = Number.parseInt(r, 10);
       if (Number.isNaN(qtd) || qtd < 0) alert("Digite um número inteiro igual ou maior que zero.");
     }
     if (qtd > 0) {
       const sub = qtd * p.preco;
       total += sub;
+      itens.push({ nome: p.nome, qtd, sub });
       resumo += `${qtd}x ${p.nome} = ${brl(sub)}\n`;
     }
   }
-  alert(total === 0 ? "Nenhum produto foi selecionado." : `Resumo da simulação:\n\n${resumo}\nTotal: ${brl(total)}`);
+  if (total === 0) { alert("Nenhum produto foi selecionado."); return null; }
+  alert(`Resumo da simulação de ${nome}:\n\n${resumo}\nTotal: ${brl(total)}`);
+  const pedido = { nome, itens, total, data: new Date().toLocaleString("pt-BR") };
+  localStorage.setItem(CHAVE, JSON.stringify([pedido, ...lerPedidos()]));
+  return pedido;
+}
+
+function PainelPedidos({ pedidos, limpar }: { pedidos: Pedido[]; limpar: () => void }) {
+  return (
+    <section id="pedidos" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="card-surface p-8 md:p-10">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold md:text-3xl">Pedidos simulados</h2>
+          {pedidos.length > 0 && <button type="button" onClick={limpar} className="text-sm text-muted-foreground hover:text-foreground">Limpar pedidos</button>}
+        </div>
+        {pedidos.length === 0 ? (
+          <p className="mt-4 text-muted-foreground">Nenhum pedido ainda. Faça uma simulação para vê-la aqui.</p>
+        ) : (
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-muted-foreground"><tr><th className="py-2 pr-4">Nome</th><th className="py-2 pr-4">Produtos</th><th className="py-2 pr-4">Data</th><th className="py-2 text-right">Total</th></tr></thead>
+              <tbody>
+                {pedidos.map((p, i) => (
+                  <tr key={i} className="border-t align-top">
+                    <td className="py-3 pr-4 font-medium">{p.nome}</td>
+                    <td className="py-3 pr-4">{p.itens.map((it) => <div key={it.nome}>{it.qtd}x {it.nome}</div>)}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{p.data}</td>
+                    <td className="py-3 text-right font-display font-bold text-cyan">{brl(p.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function Logo() {
@@ -69,7 +117,9 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
 
 function Index() {
   const [menu, setMenu] = useState(false);
-  const links = [["#inicio", "Início"], ["#produtos", "Produtos"], ["#como-funciona", "Como funciona"]];
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  useEffect(() => { setPedidos(lerPedidos()); }, []);
+  const links = [["#inicio", "Início"], ["#produtos", "Produtos"], ["#como-funciona", "Como funciona"], ["#pedidos", "Pedidos"]];
 
   return (
     <div className="min-h-screen">
@@ -157,11 +207,13 @@ function Index() {
                 </ul>
               </div>
               <div className="md:text-center">
-                <button id="btn-simular" type="button" onClick={simularCompra} className="btn-primary px-10 py-4 text-lg">Simular compra</button>
+                <button id="btn-simular" type="button" onClick={() => { if (simularCompra()) setPedidos(lerPedidos()); }} className="btn-primary px-10 py-4 text-lg">Simular compra</button>
               </div>
             </div>
           </div>
         </section>
+
+        <PainelPedidos pedidos={pedidos} limpar={() => { localStorage.removeItem(CHAVE); setPedidos([]); }} />
       </main>
 
       <footer className="border-t">
@@ -183,18 +235,14 @@ function Index() {
 }
 
 function Recomendador() {
-  const recommend = useServerFn(recommendProduct);
   const [need, setNeed] = useState("");
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [res, setRes] = useState<{ id?: string; reason?: string; error?: string } | null>(null);
   const produto = produtos.find((p) => p.id === res?.id);
 
-  async function enviar(e: import("react").FormEvent) {
+  function enviar(e: import("react").FormEvent) {
     e.preventDefault();
-    setLoading(true); setRes(null);
-    try { setRes(await recommend({ data: { need } })); }
-    catch { setRes({ error: "Descreva sua necessidade (3 a 500 caracteres)." }); }
-    finally { setLoading(false); }
+    setRes(recomendarLocal(need));
   }
 
   return (
@@ -202,7 +250,7 @@ function Recomendador() {
       <div className="card-surface p-8 md:p-10">
         <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-cyan"><Sparkles className="h-4 w-4" aria-hidden />Assistente NEXO</p>
         <h2 className="mt-3 text-2xl font-bold md:text-3xl">Não sabe qual escolher?</h2>
-        <p className="mt-2 text-muted-foreground">Conte o que você precisa e nossa IA recomenda um dos nossos produtos.</p>
+        <p className="mt-2 text-muted-foreground">Conte o que você precisa e nosso assistente recomenda um dos nossos produtos.</p>
         <form onSubmit={enviar} className="mt-6 flex flex-col gap-3 md:flex-row">
           <label htmlFor="necessidade" className="sr-only">Descreva o que você precisa</label>
           <input id="necessidade" value={need} onChange={(e) => setNeed(e.target.value)} maxLength={500}
